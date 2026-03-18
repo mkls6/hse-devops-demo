@@ -1,0 +1,20 @@
+services:
+  backend:
+    build:
+      context: ./flappy-backend
+      dockerfile: Dockerfile
+      target: prod
+    container_name: hse_flappy_backend
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./flappy
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: "http://localhost:8000/"
+      target: prod
+    container_name: hse_flappy_frontend
+    ports:
+      - "8080:80"
