@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 from typing import List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException
@@ -8,8 +9,6 @@ from logic import get_scoreboard as logic_get_scoreboard
 from logic import put_result as logic_put_result
 from models import Result, ScoreEntry
 from storage import InMemoryStorage, PostgresStorage
-
-app = FastAPI(title="Flappy Scoreboard")
 
 _storage_instance: Optional[StorageProtocol] = None
 
@@ -28,28 +27,28 @@ def _create_storage_from_env() -> StorageProtocol:
     raise RuntimeError(f"unsupported STORAGE_TYPE: {storage_type}")
 
 
-@app.on_event("startup")
-def _startup() -> None:
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     global _storage_instance
     if _storage_instance is None:
         try:
             _storage_instance = _create_storage_from_env()
         except Exception as exc:
             raise RuntimeError(f"failed to initialize storage: {exc}") from exc
+    try:
+        yield
+    finally:
+        if _storage_instance is not None:
+            close_fn = getattr(_storage_instance, "close", None)
+            if callable(close_fn):
+                try:
+                    close_fn()
+                except Exception:
+                    pass
+                    _storage_instance = None
 
 
-@app.on_event("shutdown")
-def _shutdown() -> None:
-    global _storage_instance
-    if _storage_instance is None:
-        return
-    close_fn = getattr(_storage_instance, "close", None)
-    if callable(close_fn):
-        try:
-            close_fn()
-        except Exception:
-            pass
-    _storage_instance = None
+app = FastAPI(title="Flappy Scoreboard", lifespan=lifespan)
 
 
 def get_storage_dep() -> StorageProtocol:

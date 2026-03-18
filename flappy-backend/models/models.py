@@ -12,6 +12,8 @@ class Result(BaseModel):
     nickname: str = Field(..., min_length=1, max_length=64)
     score: int = Field(..., ge=0)
 
+    model_config = {"from_attributes": True}
+
 
 class ScoreEntry(BaseModel):
     """
@@ -21,5 +23,4 @@ class ScoreEntry(BaseModel):
     nickname: str
     score: int
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
