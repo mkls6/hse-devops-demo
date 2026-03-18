@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from typing import List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 from logic import StorageProtocol
 from logic import get_scoreboard as logic_get_scoreboard
@@ -38,17 +39,35 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
+        # Ensure we always try to clean up the storage instance when the app shuts down.
         if _storage_instance is not None:
             close_fn = getattr(_storage_instance, "close", None)
             if callable(close_fn):
                 try:
                     close_fn()
                 except Exception:
+                    # ignore cleanup errors
                     pass
-                    _storage_instance = None
+            # release reference
+            _storage_instance = None
 
 
 app = FastAPI(title="Flappy Scoreboard", lifespan=lifespan)
+
+# CORS configuration: use CORS_ALLOW_ORIGINS env var (comma-separated) or "*" for all.
+_cors_env = os.environ.get("CORS_ALLOW_ORIGINS", "*")
+if _cors_env.strip() == "*":
+    _origins = ["*"]
+else:
+    _origins = [o.strip() for o in _cors_env.split(",") if o.strip()]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def get_storage_dep() -> StorageProtocol:
