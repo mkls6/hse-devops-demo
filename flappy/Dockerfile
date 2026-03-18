@@ -3,6 +3,7 @@ WORKDIR /app
 COPY package.json yarn.lock ./
 RUN yarn install --immutable
 COPY . .
+ARG VITE_API_BASE_URL
 RUN yarn build
 
 FROM nginx:alpine AS prod
