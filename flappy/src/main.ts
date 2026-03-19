@@ -1,7 +1,14 @@
 import "./style.css";
-import { BASE_WIDTH, BASE_HEIGHT, PIPE_WIDTH, FLAP } from "./types";
+import {
+  BASE_WIDTH,
+  BASE_HEIGHT,
+  PIPE_WIDTH,
+  FLAP,
+  type ScoreEntry,
+} from "./types";
 import { createGameState, updateGame, resizeCanvas } from "./game";
 import { flap } from "./bird";
+import { getScoreboard, submitScore } from "./api";
 
 const canvas = document.getElementById("game") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d")!;
@@ -42,6 +49,30 @@ const colors = {
 
 // Game state
 let state = createGameState();
+let scoreboard: ScoreEntry[] = [];
+let playerName = "";
+let showScoreboardForm = false;
+let isSubmitting = false;
+let submitError: string | null = null;
+
+// UI Elements
+const scoreboardPanel = document.getElementById(
+  "scoreboard-panel",
+) as HTMLDivElement;
+const scoreboardList = document.getElementById(
+  "scoreboard-list",
+) as HTMLUListElement;
+const scoreForm = document.getElementById("score-form") as HTMLFormElement;
+const nicknameInput = document.getElementById(
+  "nickname-input",
+) as HTMLInputElement;
+const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement;
+const closeScoreboardBtn = document.getElementById(
+  "close-scoreboard",
+) as HTMLButtonElement;
+const submitMessage = document.getElementById(
+  "submit-message",
+) as HTMLParagraphElement;
 
 function drawBackground(): void {
   const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -119,7 +150,92 @@ function draw(): void {
   ctx.fillText(`Score: ${state.score}`, 10, 30);
 
   if (state.gameOver) {
-    ctx.fillText("Game Over - Click to Restart", 30, canvas.height / 2);
+    ctx.font = "bold 24px Arial";
+    ctx.fillText("Game Over", 140, canvas.height / 2 - 40);
+    ctx.font = "16px Arial";
+    ctx.fillText(`Final Score: ${state.score}`, 145, canvas.height / 2);
+    ctx.fillText("Press ENTER to submit score", 110, canvas.height / 2 + 30);
+    ctx.fillText("or click to restart", 145, canvas.height / 2 + 55);
+  }
+}
+
+function updateScoreboardUI(): void {
+  if (scoreboard.length === 0) {
+    scoreboardList.innerHTML = "<li>No scores yet</li>";
+    return;
+  }
+
+  scoreboardList.innerHTML = scoreboard
+    .map(
+      (entry, index) => `
+      <li>
+        <span class="rank">#${index + 1}</span>
+        <span class="nickname">${escapeHtml(entry.nickname)}</span>
+        <span class="score">${entry.score}</span>
+      </li>
+    `,
+    )
+    .join("");
+}
+
+function escapeHtml(text: string): string {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+async function loadScoreboard(): Promise<void> {
+  try {
+    scoreboard = await getScoreboard(10);
+    updateScoreboardUI();
+  } catch (error) {
+    console.error("Failed to load scoreboard:", error);
+    scoreboardList.innerHTML = "<li>Failed to load scores</li>";
+  }
+}
+
+async function handleSubmitScore(event: Event): Promise<void> {
+  event.preventDefault();
+
+  const nickname = nicknameInput.value.trim();
+  if (!nickname) {
+    submitError = "Please enter a nickname";
+    updateSubmitMessage();
+    return;
+  }
+
+  isSubmitting = true;
+  submitError = null;
+  updateSubmitMessage();
+  submitBtn.disabled = true;
+
+  try {
+    await submitScore(nickname, state.score);
+    playerName = nickname;
+    showScoreboardForm = false;
+    scoreboardPanel.classList.remove("visible");
+    await loadScoreboard();
+    state = createGameState();
+  } catch (error) {
+    submitError =
+      error instanceof Error ? error.message : "Failed to submit score";
+  } finally {
+    isSubmitting = false;
+    submitBtn.disabled = false;
+    updateSubmitMessage();
+  }
+}
+
+function updateSubmitMessage(): void {
+  if (submitError) {
+    submitMessage.textContent = submitError;
+    submitMessage.className = "error";
+  } else if (isSubmitting) {
+    submitMessage.textContent = "Submitting...";
+    submitMessage.className = "loading";
+  } else {
+    submitMessage.textContent = "";
+    submitMessage.className = "";
   }
 }
 
@@ -130,16 +246,45 @@ function gameLoop(): void {
 }
 
 // Controls
-window.addEventListener("mousedown", () => {
+window.addEventListener("mousedown", (e: MouseEvent) => {
+  // Ignore clicks on scoreboard panel
+  if (scoreboardPanel.contains(e.target as Node)) {
+    return;
+  }
+
   if (state.gameOver) {
     state = createGameState();
+    showScoreboardForm = false;
+    scoreboardPanel.classList.remove("visible");
   } else {
     flap(state.bird, FLAP);
   }
 });
 
+window.addEventListener("keydown", (e: KeyboardEvent) => {
+  if (e.key === "Enter" && state.gameOver && !showScoreboardForm) {
+    showScoreboardForm = true;
+    scoreboardPanel.classList.add("visible");
+    nicknameInput.value = playerName;
+    nicknameInput.focus();
+  }
+});
+
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
+
+// Scoreboard controls
+scoreForm.addEventListener("submit", handleSubmitScore);
+closeScoreboardBtn.addEventListener("click", () => {
+  showScoreboardForm = false;
+  scoreboardPanel.classList.remove("visible");
+  if (state.gameOver) {
+    state = createGameState();
+  }
+});
+
+// Initial load
+loadScoreboard();
 
 // Start game when image loads
 crowImg.onload = () => gameLoop();

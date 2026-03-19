@@ -3,19 +3,34 @@
     <head>
         <meta charset="UTF-8" />
         <title>Minimal Flappy</title>
-        <style>
-            body {
-                margin: 0;
-                overflow: hidden;
-            }
-            canvas {
-                display: block;
-                background: #70c5ce;
-            }
-        </style>
     </head>
     <body>
         <canvas id="game"></canvas>
+
+        <div id="scoreboard-panel" class="scoreboard-panel">
+            <div class="scoreboard-header">
+                <h2>Scoreboard</h2>
+                <button id="close-scoreboard" class="close-btn">&times;</button>
+            </div>
+
+            <form id="score-form" class="score-form">
+                <label for="nickname-input">Your nickname:</label>
+                <input
+                    type="text"
+                    id="nickname-input"
+                    placeholder="Enter nickname"
+                    maxlength="64"
+                    required
+                />
+                <button type="submit" id="submit-btn">Submit Score</button>
+                <p id="submit-message"></p>
+            </form>
+
+            <ul id="scoreboard-list" class="scoreboard-list">
+                <li>Loading...</li>
+            </ul>
+        </div>
+
         <script type="module" src="/src/main.ts"></script>
     </body>
 </html>

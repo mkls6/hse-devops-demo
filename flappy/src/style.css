@@ -28,3 +28,189 @@ canvas {
     display: block;
     image-rendering: pixelated;
 }
+
+/* Scoreboard Panel */
+.scoreboard-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    background: linear-gradient(135deg, #1a3a4a 0%, #0d2838 100%);
+    border: 2px solid #6fb7ff;
+    border-radius: 12px;
+    padding: 20px;
+    min-width: 300px;
+    max-width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    visibility: hidden;
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease,
+        visibility 0.2s;
+    z-index: 1000;
+}
+
+.scoreboard-panel.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.scoreboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #2f6fa5;
+}
+
+.scoreboard-header h2 {
+    margin: 0;
+    color: #fff;
+    font-size: 20px;
+    font-family: Arial, sans-serif;
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    color: #6fb7ff;
+    font-size: 28px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.close-btn:hover {
+    color: #fff;
+}
+
+/* Score Form */
+.score-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #2f6fa5;
+}
+
+.score-form label {
+    color: #aaa;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+}
+
+.score-form input {
+    padding: 10px;
+    border: 1px solid #2f6fa5;
+    border-radius: 6px;
+    background: #0d2838;
+    color: #fff;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+}
+
+.score-form input::placeholder {
+    color: #666;
+}
+
+.score-form input:focus {
+    outline: none;
+    border-color: #6fb7ff;
+}
+
+.score-form button {
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #2f6fa5 0%, #1e3c5a 100%);
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition:
+        transform 0.1s,
+        box-shadow 0.2s;
+}
+
+.score-form button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(111, 183, 255, 0.3);
+}
+
+.score-form button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+#submit-message {
+    margin: 0;
+    font-size: 12px;
+    font-family: Arial, sans-serif;
+}
+
+#submit-message.error {
+    color: #ff6b6b;
+}
+
+#submit-message.loading {
+    color: #6fb7ff;
+}
+
+/* Scoreboard List */
+.scoreboard-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.scoreboard-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    margin-bottom: 4px;
+    background: rgba(47, 111, 165, 0.2);
+    border-radius: 6px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+}
+
+.scoreboard-list li:nth-child(1) {
+    background: rgba(255, 215, 0, 0.2);
+}
+
+.scoreboard-list li:nth-child(2) {
+    background: rgba(192, 192, 192, 0.2);
+}
+
+.scoreboard-list li:nth-child(3) {
+    background: rgba(205, 127, 50, 0.2);
+}
+
+.rank {
+    color: #6fb7ff;
+    font-weight: bold;
+    min-width: 40px;
+}
+
+.nickname {
+    flex: 1;
+    color: #fff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.score {
+    color: #ffd700;
+    font-weight: bold;
+    min-width: 50px;
+    text-align: right;
+}

@@ -21,6 +21,11 @@ export interface GameState {
   frame: number;
 }
 
+export interface ScoreEntry {
+  nickname: string;
+  score: number;
+}
+
 // Game constants
 export const GRAVITY = 0.25;
 export const FLAP = -4.5;

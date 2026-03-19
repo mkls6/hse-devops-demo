@@ -17,6 +17,18 @@ export function resetGame(): GameState {
   return createGameState();
 }
 
+export function setGameOver(state: GameState): void {
+  state.gameOver = true;
+}
+
+export function isGameOver(state: GameState): boolean {
+  return state.gameOver;
+}
+
+export function getScore(state: GameState): number {
+  return state.score;
+}
+
 export function updateGame(state: GameState, canvasHeight: number): void {
   if (state.gameOver) return;
 
