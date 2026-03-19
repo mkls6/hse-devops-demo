@@ -37,6 +37,7 @@ spec:
             - name: http
               containerPort: 8000
               protocol: TCP
+          env:
             {{- if .Values.envs }}
             {{- range .Values.envs }}
             - name: {{ .name }}
