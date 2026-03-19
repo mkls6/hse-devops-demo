@@ -2,7 +2,7 @@
 replicaCount: 1
 
 image:
-  repository: flappy-backend
+  repository: ghcr.io/mkls6/hse-devops-demo/flappy-backend
   pullPolicy: IfNotPresent
   tag: "latest"
 
@@ -25,6 +25,10 @@ service:
   type: ClusterIP
   port: 8000
   targetPort: 8000
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "/metrics"
+    prometheus.io/port: "8000"
 
 ingress:
   enabled: true
@@ -33,10 +37,14 @@ ingress:
   hosts:
     - host: api.local
       paths:
-        - path: /
+        - path: /scoreboard
           pathType: Prefix
   tls: []
 
+envs:
+  - name: STORAGE_TYPE
+    value: postgres
+  - name: DATABASE_DSN
 resources:
   limits:
     cpu: 500m

@@ -1,7 +1,8 @@
+---
 replicaCount: 1
 
 image:
-  repository: flappy-frontend
+  repository: ghcr.io/mkls6/hse-devops-demo/flappy
   pullPolicy: IfNotPresent
   tag: "latest"
 
