@@ -1,11 +1,26 @@
 [project]
 name = "flappy-backend"
+
 version = "0.1.0"
 description = "HSE DevOps/SRE"
+
 readme = "README.md"
 requires-python = ">=3.12"
+
 dependencies = [
     "fastapi[standard]>=0.135.1",
     "psycopg2-binary>=2.9.11",
     "uvicorn[standard]>=0.42.0",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.setuptools]
+py-modules = []
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.6",
 ]
