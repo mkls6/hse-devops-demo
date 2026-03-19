@@ -1,176 +1,145 @@
+import "./style.css";
+import { BASE_WIDTH, BASE_HEIGHT, PIPE_WIDTH, FLAP } from "./types";
+import { createGameState, updateGame, resizeCanvas } from "./game";
+import { flap } from "./bird";
+
 const canvas = document.getElementById("game") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d")!;
 
-canvas.width = 1000;
-canvas.height = 1000;
+ctx.imageSmoothingEnabled = false;
+
+const crowImg = new Image();
+crowImg.src = "/sprites/crow.png";
+
+// Set canvas dimensions
+canvas.width = BASE_WIDTH;
+canvas.height = BASE_HEIGHT;
+
+// Get colors from CSS variables
+const colors = {
+  bgTop: getComputedStyle(document.documentElement)
+    .getPropertyValue("--color-bg-top")
+    .trim(),
+  bgBottom: getComputedStyle(document.documentElement)
+    .getPropertyValue("--color-bg-bottom")
+    .trim(),
+  pipeDark: getComputedStyle(document.documentElement)
+    .getPropertyValue("--color-pipe-dark")
+    .trim(),
+  pipeLight: getComputedStyle(document.documentElement)
+    .getPropertyValue("--color-pipe-light")
+    .trim(),
+  pipeRim: getComputedStyle(document.documentElement)
+    .getPropertyValue("--color-pipe-rim")
+    .trim(),
+  star: getComputedStyle(document.documentElement)
+    .getPropertyValue("--color-star")
+    .trim(),
+  text: getComputedStyle(document.documentElement)
+    .getPropertyValue("--color-text")
+    .trim(),
+};
 
 // Game state
-let birdY = canvas.height / 2;
-let birdVelocity = 0;
-let pipes: { x: number; top: number; bottom: number }[] = [];
-let score = 0;
-let gameOver = false;
-let resultSent = false;
-let gameOverMessage = "";
+let state = createGameState();
 
-const GRAVITY = 0.5;
-const FLAP = -8;
-const PIPE_WIDTH = 50;
-const PIPE_GAP = 150;
-const PIPE_SPEED = 3;
+function drawBackground(): void {
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  grad.addColorStop(0, colors.bgTop);
+  grad.addColorStop(1, colors.bgBottom);
 
-const API_BASE =
-  (typeof import.meta !== "undefined" &&
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    import.meta.env &&
-    // @ts-ignore
-    import.meta.env.VITE_API_BASE_URL) ||
-  "/";
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-function draw() {
+  // Stars
+  ctx.fillStyle = colors.star;
+  for (let i = 0; i < 40; i++) {
+    const x = (i * 97 + state.frame * 0.2) % canvas.width;
+    const y = (i * 53) % canvas.height;
+    ctx.fillRect(x, y, 2, 2);
+  }
+
+  // City silhouette
+  ctx.fillStyle = "rgba(255,255,255,0.05)";
+  for (let i = 0; i < canvas.width; i += 60) {
+    const h = 40 + Math.sin((i + state.frame) * 0.01) * 20;
+    ctx.fillRect(i, canvas.height - h, 60, h);
+  }
+}
+
+function drawPipe(x: number, top: number, bottom: number): void {
+  const grad = ctx.createLinearGradient(x, 0, x + PIPE_WIDTH, 0);
+  grad.addColorStop(0, colors.pipeDark);
+  grad.addColorStop(0.5, colors.pipeLight);
+  grad.addColorStop(1, colors.pipeDark);
+
+  ctx.fillStyle = grad;
+
+  // Top pipe
+  ctx.fillRect(x, 0, PIPE_WIDTH, top);
+
+  // Bottom pipe
+  ctx.fillRect(x, canvas.height - bottom, PIPE_WIDTH, bottom);
+
+  // Highlight strip
+  ctx.fillStyle = "rgba(255,255,255,0.15)";
+  ctx.fillRect(x + PIPE_WIDTH * 0.15, 0, PIPE_WIDTH * 0.1, top);
+  ctx.fillRect(
+    x + PIPE_WIDTH * 0.15,
+    canvas.height - bottom,
+    PIPE_WIDTH * 0.1,
+    bottom,
+  );
+
+  // Rim
+  ctx.fillStyle = colors.pipeRim;
+  ctx.fillRect(x - 2, top - 8, PIPE_WIDTH + 4, 8);
+  ctx.fillRect(x - 2, canvas.height - bottom, PIPE_WIDTH + 4, 8);
+}
+
+function draw(): void {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawBackground();
 
-  // Draw bird
-  ctx.fillStyle = "#ffeb3b";
-  ctx.fillRect(50, birdY, 30, 30);
+  // Draw Bird (Crow)
+  ctx.drawImage(
+    crowImg,
+    state.bird.x,
+    state.bird.y,
+    state.bird.w,
+    state.bird.h,
+  );
 
-  // Draw pipes
-  ctx.fillStyle = "#4caf50";
-  pipes.forEach((pipe) => {
-    ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.top);
-    ctx.fillRect(pipe.x, canvas.height - pipe.bottom, PIPE_WIDTH, pipe.bottom);
-  });
+  // Draw Pipes
+  state.pipes.forEach((p) => drawPipe(p.x, p.top, p.bottom));
 
-  // Draw score
-  ctx.fillStyle = "white";
-  ctx.font = "30px Arial";
-  ctx.fillText(`Score: ${Math.floor(score)}`, 10, 40);
+  // Draw Score
+  ctx.fillStyle = colors.text;
+  ctx.font = "20px Arial";
+  ctx.fillText(`Score: ${state.score}`, 10, 30);
 
-  if (gameOver) {
-    ctx.fillStyle = "white";
-    ctx.font = "36px Arial";
-    ctx.fillText("Game Over! Click to Restart", 10, canvas.height / 2);
-    if (gameOverMessage) {
-      ctx.font = "24px Arial";
-      ctx.fillText(gameOverMessage, 10, canvas.height / 2 + 40);
-    }
+  if (state.gameOver) {
+    ctx.fillText("Game Over - Click to Restart", 30, canvas.height / 2);
   }
 }
 
-function update() {
-  if (gameOver) return;
-
-  birdVelocity += GRAVITY;
-  birdY += birdVelocity;
-
-  // Pipe logic
-  if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 500) {
-    const topHeight = Math.random() * (canvas.height - PIPE_GAP - 100) + 50;
-    pipes.push({
-      x: canvas.width,
-      top: topHeight,
-      bottom: canvas.height - topHeight - PIPE_GAP,
-    });
-  }
-
-  pipes.forEach((pipe) => {
-    pipe.x -= PIPE_SPEED;
-
-    // Collision detection
-    if (
-      50 < pipe.x + PIPE_WIDTH &&
-      50 + 30 > pipe.x &&
-      (birdY < pipe.top || birdY + 30 > canvas.height - pipe.bottom)
-    ) {
-      triggerGameOver();
-    }
-  });
-
-  pipes = pipes.filter((pipe) => pipe.x > -PIPE_WIDTH);
-  score += 0.05;
-
-  // Ground/Ceiling collision
-  if (birdY > canvas.height || birdY < 0) triggerGameOver();
-}
-
-function triggerGameOver() {
-  if (gameOver) return;
-  gameOver = true;
-  // send result once
-  if (!resultSent) {
-    resultSent = true;
-    promptAndSendResult(Math.floor(score));
-  }
-}
-
-function loop() {
-  update();
+function gameLoop(): void {
+  updateGame(state, BASE_HEIGHT);
   draw();
-  requestAnimationFrame(loop);
+  requestAnimationFrame(gameLoop);
 }
 
+// Controls
 window.addEventListener("mousedown", () => {
-  if (gameOver) {
-    birdY = canvas.height / 2;
-    birdVelocity = 0;
-    pipes = [];
-    score = 0;
-    gameOver = false;
-    resultSent = false;
-    gameOverMessage = "";
+  if (state.gameOver) {
+    state = createGameState();
   } else {
-    birdVelocity = FLAP;
+    flap(state.bird, FLAP);
   }
 });
 
-async function promptAndSendResult(finalScore: number) {
-  try {
-    const defaultName =
-      (localStorage && localStorage.getItem("flappy_nickname")) || "";
-    let nickname = prompt("Enter your nickname to save score:", defaultName);
-    if (nickname === null) {
-      gameOverMessage = "Score not saved.";
-      return;
-    }
-    nickname = nickname.trim() || "anonymous";
-    try {
-      localStorage.setItem("flappy_nickname", nickname);
-    } catch {
-      // ignore
-    }
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
 
-    gameOverMessage = "Sending score...";
-    // Draw immediately to show message
-    draw();
-
-    const res = await fetch(new URL("scoreboard", API_BASE).toString(), {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ nickname, score: finalScore }),
-    });
-
-    if (!res.ok) {
-      let text = await res.text().catch(() => res.statusText || "error");
-      try {
-        const json = await res.json().catch(() => null);
-        if (json && json.detail) text = json.detail;
-      } catch {}
-      gameOverMessage = `Failed to save: ${text}`;
-    } else {
-      const data = await res.json().catch(() => null);
-      const shownScore =
-        data && typeof data.score === "number" ? data.score : finalScore;
-      gameOverMessage = `Score saved: ${shownScore}`;
-    }
-  } catch (err) {
-    console.error("Failed to send score", err);
-    gameOverMessage = "Failed to send score";
-  } finally {
-    draw();
-  }
-}
-
-loop();
+// Start game when image loads
+crowImg.onload = () => gameLoop();
