@@ -1,0 +1,77 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deployment environment"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_FRONTEND: ${{ github.repository }}/flappy
+  IMAGE_NAME_BACKEND: ${{ github.repository }}/flappy-backend
+
+jobs:
+  deploy:
+    name: Deploy to Cluster
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get short SHA
+        id: sha
+        run: echo "short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: "v1.30.0"
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
+
+      - name: Verify cluster connection
+        run: kubectl cluster-info
+
+      - name: Create namespace
+        run: kubectl create namespace flappy --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Create values file from secret
+        run: |
+          echo "${{ secrets.HELM_VALUES }}" | base64 -d > /tmp/values.yaml
+
+      - name: Deploy backend
+        run: |
+          helm upgrade --install flappy-backend ./charts/flappy-backend \
+            --namespace flappy \
+            --set image.repository=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }} \
+            --set image.tag=sha-${{ steps.sha.outputs.short }} \
+            --set image.pullPolicy=Always \
+            -f /tmp/values.yaml \
+            --wait --timeout 5m
+
+      - name: Deploy frontend
+        run: |
+          helm upgrade --install flappy ./charts/flappy \
+            --namespace flappy \
+            --set image.repository=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }} \
+            --set image.tag=sha-${{ steps.sha.outputs.short }} \
+            --set image.pullPolicy=Always \
+            --set backendUrl="http://flappy-backend:8000" \
+            --wait --timeout 5m
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/flappy-backend -n flappy
+          kubectl rollout status deployment/flappy -n flappy
+          kubectl get pods -n flappy
