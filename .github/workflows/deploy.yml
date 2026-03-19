@@ -48,7 +48,10 @@ jobs:
 
       - name: Create values file from secret
         run: |
-          echo "${{ secrets.HELM_VALUES }}" | base64 -d > /tmp/values.yaml
+          echo "${{ secrets.HELM_VALUES_FRONTEND }}" | base64 -d > /tmp/values-frontend.yaml
+      - name: Create values file from secret
+        run: |
+          echo "${{ secrets.HELM_VALUES_BACKEND }}" | base64 -d > /tmp/values-backend.yaml
 
       - name: Deploy backend
         run: |
@@ -57,7 +60,7 @@ jobs:
             --set image.repository=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }} \
             --set image.tag=sha-${{ steps.sha.outputs.short }} \
             --set image.pullPolicy=Always \
-            -f /tmp/values.yaml \
+            -f /tmp/values-backend.yaml \
             --wait --timeout 5m
 
       - name: Deploy frontend
@@ -67,7 +70,7 @@ jobs:
             --set image.repository=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }} \
             --set image.tag=sha-${{ steps.sha.outputs.short }} \
             --set image.pullPolicy=Always \
-            --set backendUrl="http://flappy-backend:8000" \
+            -f /tmp/values-frontend.yaml
             --wait --timeout 5m
 
       - name: Verify deployment
