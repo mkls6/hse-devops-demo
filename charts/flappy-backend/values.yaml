@@ -44,7 +44,6 @@ ingress:
 envs:
   - name: STORAGE_TYPE
     value: postgres
-  - name: DATABASE_DSN
 secret:
   enabled: true
   name: ""  # Auto-generated if empty
