@@ -50,6 +50,13 @@ secret:
   data:
     DATABASE_DSN: ""  # Set via --set secret.data.DATABASE_DSN or values file
 
+serviceMonitor:
+  enabled: false
+  namespace: ""
+  interval: 30s
+  scrapeTimeout: 10s
+  additionalLabels: {}
+
 resources:
   limits:
     cpu: 500m
@@ -69,3 +76,4 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+otelExporterEndpoint: ""
