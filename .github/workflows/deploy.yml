@@ -60,6 +60,7 @@ jobs:
             --set image.repository=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }} \
             --set image.tag=sha-${{ steps.sha.outputs.short }} \
             --set image.pullPolicy=Always \
+            -f ./charts/flappy-backend/values.yaml \
             -f /tmp/values-backend.yaml \
             --wait --timeout 5m
 
@@ -70,6 +71,7 @@ jobs:
             --set image.repository=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }} \
             --set image.tag=sha-${{ steps.sha.outputs.short }} \
             --set image.pullPolicy=Always \
+            -f ./charts/flappy/values.yaml \
             -f /tmp/values-frontend.yaml \
             --wait --timeout 5m
 
