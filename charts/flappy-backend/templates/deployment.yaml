@@ -37,6 +37,24 @@ spec:
             - name: http
               containerPort: 8000
               protocol: TCP
+            {{- if .Values.envs }}
+            {{- range .Values.envs }}
+            - name: {{ .name }}
+              {{- if .value }}
+              value: {{ .value | quote }}
+              {{- else if .valueFrom }}
+              valueFrom:
+                {{- toYaml .valueFrom | nindent 16 }}
+              {{- end }}
+            {{- end }}
+            {{- end }}
+            {{- if .Values.secret.enabled }}
+            - name: DATABASE_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.name | default (include "flappy-backend.fullname" .) }}
+                  key: DATABASE_DSN
+            {{- end }}
           livenessProbe:
             httpGet:
               path: /

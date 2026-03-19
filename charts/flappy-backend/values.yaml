@@ -45,6 +45,12 @@ envs:
   - name: STORAGE_TYPE
     value: postgres
   - name: DATABASE_DSN
+secret:
+  enabled: true
+  name: ""  # Auto-generated if empty
+  data:
+    DATABASE_DSN: ""  # Set via --set secret.data.DATABASE_DSN or values file
+
 resources:
   limits:
     cpu: 500m
