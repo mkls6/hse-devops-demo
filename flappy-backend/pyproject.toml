@@ -13,5 +13,14 @@ dependencies = [
     "uvicorn[standard]>=0.42.0",
 ]
 
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
 [tool.setuptools]
 py-modules = []
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.6",
+]

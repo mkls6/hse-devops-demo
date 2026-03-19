@@ -48,5 +48,8 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
 
+      - name: Lint with ruff
+        run: uv run ruff check .
+
       - name: Build
         run: uv build
