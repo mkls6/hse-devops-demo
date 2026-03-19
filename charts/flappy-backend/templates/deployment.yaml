@@ -38,6 +38,10 @@ spec:
               containerPort: 8000
               protocol: TCP
           env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.otelExporterEndpoint | default "" | quote }}
+            - name: OTEL_SERVICE_NAME
+              value: {{ include "flappy-backend.fullname" . | quote }}
             {{- if .Values.envs }}
             {{- range .Values.envs }}
             - name: {{ .name }}

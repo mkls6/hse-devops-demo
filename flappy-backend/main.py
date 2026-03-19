@@ -4,7 +4,9 @@ from typing import List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 
+from instrumentation import setup_opentelemetry
 from logic import StorageProtocol
 from logic import get_scoreboard as logic_get_scoreboard
 from logic import put_result as logic_put_result
@@ -68,6 +70,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Prometheus metrics instrumentation
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+
+# OpenTelemetry instrumentation
+setup_opentelemetry(app)
 
 
 def get_storage_dep() -> StorageProtocol:
