@@ -1,0 +1,6 @@
+apiVersion: v2
+name: flappy-backend
+description: Helm chart for Flappy backend (FastAPI)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
